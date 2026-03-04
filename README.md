@@ -1,4 +1,5 @@
 Download Instructions
+1. Make a new directory and cd to it.
 
 Windows (Git Bash)
 ```
@@ -35,7 +36,7 @@ flowchart TD
   C -->|No feasible vessel| X[Abort mission / escalate]
 ```
 
-### Entity View
+### ENTITIES
 
 ```mermaid
 classDiagram
@@ -93,10 +94,13 @@ classDiagram
     +quality_of_care: str
   }
 
-  MainHub "1" o-- "*" RescueVessel
-  MainHub "1" o-- "*" Port
-  Incident "*" --> "1" Destination
-  RescueMission "*" --> "1" Incident
-  RescueMission "*" --> "0..1" RescueVessel
-  RescueMission "*" --> "0..1" Port
+  %% Relationships
+  MainHub "1" o-- "*" RescueVessel : manages
+  MainHub "1" o-- "*" Port : knows
+
+  Incident "0..*" --> "1" Destination : occurs_at
+
+  RescueMission "1" --> "1" Incident : responds_to
+  RescueMission "0..1" --> "1" RescueVessel : assigned_vessel
+  RescueMission "0..1" --> "1" Port : assigned_port
 ```
