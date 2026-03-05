@@ -41,7 +41,7 @@ class MainHub:
 
         print("Enter a description of the incident")
         incident_description = input("> ").strip()
-        print("Enter type")
+        print("Enter destination type")
         incident_type = input("> ").strip()
         while True:
             print("Enter severity (LOW/MEDIUM/HIGH)")
@@ -62,7 +62,7 @@ class MainHub:
                 break
             except ValueError:
                 print("Invalid input. Please enter numbers.")
-        """Consider details/conflicts about the predefined sites we have"""
+
         print("Enter the name of the site where this incident has taken place")
 
         destination = choose_destination_from_catalog()
