@@ -20,7 +20,7 @@ python3 -m main
 
 If you don't have Python, they install Python 3 from python.org.
 ---
-## To add changes:
+### To add code:
 Create a Feature Branch
 Before making changes, create a new branch from main:
 
@@ -57,7 +57,8 @@ Add a description of your changes.
 
 Submit the Pull Request.
 
-Once approved, the PR can be merged into main.
+The pull reques should be merged into main unless unresolved errors exists.
+Examples branch names
 ```
 feature/incident-reporting
 feature/vessel-dispatch
