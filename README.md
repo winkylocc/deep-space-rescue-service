@@ -19,7 +19,52 @@ python3 -m main
 ```
 
 If you don't have Python, they install Python 3 from python.org.
+---
+## To add changes:
+Create a Feature Branch
+Before making changes, create a new branch from main:
 
+```
+git checkout main
+git pull origin main
+git checkout -b feature/your-feature-name
+```
+
+Example:
+```
+git checkout -b feature/incident-reporting
+```
+Make Your Changes
+
+Edit the code, then stage and commit:
+```
+git add .
+git commit -m "Add incident reporting feature"
+```
+Push the Branch
+
+Push the branch to the remote repository:
+```
+git push origin feature/your-feature-name
+```
+Create a Pull Request
+
+Go to the repository on GitHub.
+
+Click Compare & pull request.
+
+Add a description of your changes.
+
+Submit the Pull Request.
+
+Once approved, the PR can be merged into main.
+```
+feature/incident-reporting
+feature/vessel-dispatch
+feature/user-input-validation
+bugfix/incident-import
+docs/readme-update
+```
 ---
 
 ## Visual architecture diagram for Deep Space Rescue Service
