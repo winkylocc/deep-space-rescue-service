@@ -1,20 +1,34 @@
-from models import MainHub, RescueVessel, Destination, Incident, Port
+from models import MainHub, RescueVessel, Port
 
 def main():
+    vessel_fleet = [
+        "SSH Perkins",
+        "SSH Carla",
+        "SSH Dana",
+        "SSH Jackie",
+        "SSH Joy",
+        "SSH Ratched",
+        "SSH Pomfrey",
+        "SSH Focker",
+        "SSH Wilkes",
+        "SSH Hotlips",
+        "SSH Joy"
+    ]
     hub = MainHub(name="DSRS Main Hub")
 
-    v1 = RescueVessel("Ann Perkins", 90, 5_000_000, 25.0, 24, 4, 10_000)
-    v2 = RescueVessel("Carla", 60, 1_200_000, 18.0, 4, 1, 2_000)
-
+    v1 = RescueVessel(vessel_fleet[0])
+    v2 = RescueVessel(vessel_fleet[1])
+        
     hub.register_vessel(v1)
     hub.register_vessel(v2)
 
-    dest = Destination("Nevarro", "station", 3_000_000, "Outer Rim", "HIGH")
-    inc = Incident("INC-001", dest, "reactor_malfunction", "HIGH", 2, 6, 10, "2187-03-03T18:30")
+    print(hub.summary())
 
-    print(v1.summary())
-    print(dest.summary())
-    print(inc.summary())
+    for name in vessel_fleet:
+        hub.register_vessel(RescueVessel(name))
+
+    incident = hub.report_incident_from_user_input()
+    print(incident.summary())
 
 if __name__ == "__main__":
     main()

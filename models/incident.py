@@ -15,9 +15,10 @@ class Incident:
     casualties_critical: int
     casualties_priority: int
     casualties_stable: int
+    description: str
     time_reported: str  # keep simple for now
 
     def total_casualties(self) -> int:
         return f"Total casualties"
     def summary(self) -> str:
-        return f"A summary of the Incident for logging"
+        return f"The following incident occurred:\n {self.description}"

@@ -7,8 +7,6 @@ class Destination:
     distance_from_hub_in_km: int
     sector: str
     danger_level: str
-
-    danger_level: str = "LOW"
     
     def summary(self) -> str:
         return (
