@@ -142,6 +142,7 @@ Add a description of your changes.
 Submit the Pull Request.
 
 The pull reques should be merged into main unless unresolved errors exists.
+---
 Examples branch names
 ```
 feature/incident-reporting
