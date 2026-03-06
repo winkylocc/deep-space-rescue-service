@@ -1,13 +1,19 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
 
 
 @dataclass
 class Port:
     name: str
-    distance_from_hub_km: int
-    casualty_capacity: Dict[str, int]  # {"critical": 10, "priority": 20, "stable": 40}
-    quality_of_care: str              # "A", "B", "C", etc.
+    distance_from_hub_ly: float
+    casualty_capacity: Dict[str, int]  
+    quality_of_care: str  # "HIGH", "MEDIUM", "LOW"
+    current_load: Dict[str, int] = field(default_factory=lambda: {"critical": 0, "priority": 0, "stable": 0})
+  
 
     def summary(self) -> str:
-        return f"This Port status is"
+        return (
+            f"{self.name} is {self.distance_from_hub_ly} LY from the hub, "
+            f"quality of care: {self.quality_of_care}, "
+            f"capacity: critical={self.casualty_capacity['critical']}, priority={self.casualty_capacity['priority']}."
+        )
