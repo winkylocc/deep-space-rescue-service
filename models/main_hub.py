@@ -35,7 +35,39 @@ class MainHub:
         print(f"Vessel {vessel.name} registered at {self.name}")
 
     def register_port(self, port: Port) -> None:
-        f"Registers the port"
+        """Registers the port"""
+        self.ports.append(port)
+        print(f"Port {port.name} registered at {self.name}:)")
+
+    def assign_ports_for_casualties(self, incident: Incident) -> list:
+        remaining = {
+            "critical": incident.casualties_critical,
+            "priority": incident.casualties_priority,
+            "stable": incident.casualties_stable,
+        }
+        assignments = []
+
+        for port in self.ports:
+            if all(v <= 0 for v in remaining.values()):
+                break
+
+            assigned = {}
+            for triage in ["critical", "priority", "stable"]:
+                available = port.casualty_capacity[triage] - port.current_load[triage]
+                assigned[triage] = min(remaining[triage], available)
+
+            if any(v > 0 for v in assigned.values()):
+                for triage in ["critical", "priority", "stable"]:
+                    port.current_load[triage] += assigned[triage]
+                    remaining[triage] -= assigned[triage]
+                assignments.append((port, assigned["critical"], assigned["priority"], assigned["stable"]))
+
+        leftover = [f"{v} {k}" for k, v in remaining.items() if v > 0]
+        if leftover:
+            print(f"WARNING: {', '.join(leftover)} casualties could not be placed.")
+
+        return assignments
+
     def report_incident_from_user_input(self) -> Incident:
         """Prompt user for incident detail"""
 
