@@ -26,41 +26,96 @@ class MainHub:
     ports: List[Port] = field(default_factory=list)
     incident_counter: int = 0
 
-    def summary(self) -> str:
-        return f"{self.name}: {len(self.fleet)} vessels registered, {len(self.ports)} ports available"
-
+    # Removed summary() for now.
     def register_vessel(self, vessel: RescueVessel) -> None:
         """Adds a rescue vessel to the hub's fleet"""
         self.fleet.append(vessel)
-        print(f"Vessel {vessel.name} registered at {self.name}")
 
     def register_port(self, port: Port) -> None:
         """Registers the port"""
         self.ports.append(port)
-        print(f"Port {port.name} registered at {self.name}:)")
+    
+    def get_total_available_capacity(self) -> dict:
+        totals = {"critical": 0, "priority": 0, "stable": 0}
+
+        for port in self.ports:
+            for triage in ["critical", "priority", "stable"]:
+                available = port.casualty_capacity[triage] - port.current_load[triage]
+                totals[triage] += available
+
+        return totals
 
     def assign_ports_for_casualties(self, incident: Incident) -> list:
+        print("\nBegin casualty placement.")
+        print("Select a port to receive casualties. You can choose multiple ports until all are placed.")
+
         remaining = {
             "critical": incident.casualties_critical,
             "priority": incident.casualties_priority,
             "stable": incident.casualties_stable,
         }
+
         assignments = []
 
-        for port in self.ports:
-            if all(v <= 0 for v in remaining.values()):
+        while any(v > 0 for v in remaining.values()):
+            print("\nThe following casualties need placement:")
+            print(
+                f"Critical: {remaining['critical']}, "
+                f"Priority: {remaining['priority']}, "
+                f"Stable: {remaining['stable']}"
+            )
+
+            print("\nAvailable ports:")
+            available_ports = []
+
+            for i, port in enumerate(self.ports, start=1):
+                available = port.available_capacity()
+
+                if any(v > 0 for v in available.values()):
+                    available_ports.append(port)
+                    print(
+                        f"{len(available_ports)}) {port.name} "
+                        f"[critical={available['critical']}, "
+                        f"priority={available['priority']}, "
+                        f"stable={available['stable']}]"
+                    )
+
+            if not available_ports:
+                print("These people have exhausted our bed space!")
                 break
 
+            try:
+                choice = int(input("> Select a port number: ").strip())
+                chosen_port = available_ports[choice - 1]
+            except (ValueError, IndexError):
+                print("Invalid selection. Try again.")
+                continue
+
             assigned = {}
+
             for triage in ["critical", "priority", "stable"]:
-                available = port.casualty_capacity[triage] - port.current_load[triage]
+                available = (
+                    chosen_port.casualty_capacity[triage]
+                    - chosen_port.current_load[triage]
+                )
                 assigned[triage] = min(remaining[triage], available)
 
-            if any(v > 0 for v in assigned.values()):
-                for triage in ["critical", "priority", "stable"]:
-                    port.current_load[triage] += assigned[triage]
-                    remaining[triage] -= assigned[triage]
-                assignments.append((port, assigned["critical"], assigned["priority"], assigned["stable"]))
+            if all(v == 0 for v in assigned.values()):
+                print(f"{chosen_port.name} has no space left for these casualties.")
+                continue
+
+            for triage in ["critical", "priority", "stable"]:
+                chosen_port.current_load[triage] += assigned[triage]
+                remaining[triage] -= assigned[triage]
+            available = chosen_port.available_capacity()
+            assignments.append(
+                (
+                    chosen_port,
+                    assigned["critical"],
+                    assigned["priority"],
+                    assigned["stable"],
+                )
+            )
 
         leftover = [f"{v} {k}" for k, v in remaining.items() if v > 0]
         if leftover:
@@ -87,11 +142,25 @@ class MainHub:
             try:
                 print("Number of critical casualties")
                 critical = int(input("> ").strip())
-                print("Number of priority casualites")
+                print("Number of priority casualties")
                 priority = int(input("> ").strip())
-                print("Number of stable casualites")
+                print("Number of stable casualties")
                 stable = int(input("> ").strip())
+
+                available = self.get_total_available_capacity()
+
+                if critical > available["critical"]:
+                    print(f"Not enough critical capacity. Available: {available['critical']}")
+                    continue
+                if priority > available["priority"]:
+                    print(f"Not enough priority capacity. Available: {available['priority']}")
+                    continue
+                if stable > available["stable"]:
+                    print(f"Not enough stable capacity. Available: {available['stable']}")
+                    continue
+
                 break
+
             except ValueError:
                 print("Invalid input. Please enter numbers.")
 
@@ -117,6 +186,7 @@ class MainHub:
         
 
         return incident
+    
     def select_best_vessel(self, incident: Incident) -> Optional[RescueVessel]:
         return f"Select best vessel for this journey"
     def create_mission(self, incident: Incident) -> RescueMission:
