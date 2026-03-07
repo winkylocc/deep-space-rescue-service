@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Destination:
     name: str
@@ -7,7 +8,7 @@ class Destination:
     distance_from_hub_in_km: int
     sector: str
     danger_level: str
-    
+
     def summary(self) -> str:
         return (
             f"{self.name} is a {self.destination_type} in sector {self.sector}, "
