@@ -1,5 +1,6 @@
-from models import MainHub, RescueVessel, Port
+from models import MainHub, Port
 from data.port_catalog import PORT_CATALOG
+from data.vessel_catalog import VESSEL_CATALOG
 
 
 def show_intro():
@@ -22,23 +23,10 @@ def show_menu():
 
 
 def main():
-    vessel_fleet = [
-        "SSH Perkins",
-        "SSH Carla",
-        "SSH Dana",
-        "SSH Jackie",
-        "SSH Joy",
-        "SSH Ratched",
-        "SSH Pomfrey",
-        "SSH Focker",
-        "SSH Wilkes",
-        "SSH Hotlips",
-        "SSH Joy",
-    ]
     hub = MainHub(name="DSRS Main Hub")
     print("This is the ")
-    for name in vessel_fleet:
-        hub.register_vessel(RescueVessel(name))
+    for vessel in VESSEL_CATALOG.values():
+        hub.register_vessel(vessel)
 
     for port in PORT_CATALOG.values():
         hub.register_port(port)
@@ -54,6 +42,8 @@ def main():
 
             print("\nIncident recorded:")
             print(incident.summary())
+
+            vessel = hub.select_best_vessel(incident)
 
             assignments = hub.assign_ports_for_casualties(incident)
 

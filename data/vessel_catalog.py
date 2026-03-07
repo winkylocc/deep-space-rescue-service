@@ -1,23 +1,27 @@
-"""
+from models.rescue_vessel import RescueVessel
+from utils.menu import choose_from_options
+
 VESSEL_CATALOG = {
-    "SSH Hotlips": Vessel("SSH Hotlips", 6.2, 5.0, speedneeded, weightneeded, 4, 4, 8),
-    "SSH Perkins": Vessel("SSH Perkins", 7.1, 5.7, speedneeded, weightneeded, 8, 10, 12),
-    "SSH Pomfrey": Vessel("SSH Pomfrey", 8.3, 6.7, speedneeded, weightneeded, 20, 6, 6),
-    "SSH Focker": Vessel("SSH Focker", 9.6, 7.7, speedneeded, weightneeded, 5, 10, 30),
-    "SSH Jackie": Vessel("SSH Jackie", 10.9, 8.7, speedneeded, weightneeded, 13, 11, 29),
-    "SSH Dana": Vessel("SSH Dana", 12.0, 9.6, speedneeded, weightneeded, 16, 34, 14),
-    "SSH Carla": Vessel("SSH Carla", 13.5, 10.8, speedneeded, weightneeded, 23, 44, 12),
-    "SSH Joy": Vessel("SSH Joy", 14.8, 11.8, speedneeded, weightneeded, 15, 20, 48),
-    "SSH Wilkes": Vessel("SSH Wilkes", 17.3, 13.9, speedneeded, weightneeded, 54, 25, 20),
-    "SSH Ratched": Vessel("SSH Ratched", 20.0, 16.0, speedneeded, weightneeded, 42, 39, 24)
+    "SSH Hotlips": RescueVessel("SSH Hotlips", critical_capacity=4, priority_capacity=4, stable_capacity=8, max_range_full_ly=5.0),
+    "SSH Perkins": RescueVessel("SSH Perkins", critical_capacity=8, priority_capacity=10, stable_capacity=12, max_range_full_ly=5.7),
+    "SSH Pomfrey": RescueVessel("SSH Pomfrey", critical_capacity=20, priority_capacity=6, stable_capacity=6, max_range_full_ly=6.7),
+    "SSH Focker": RescueVessel("SSH Focker", critical_capacity=5, priority_capacity=10, stable_capacity=30, max_range_full_ly=7.7),
+    "SSH Jackie": RescueVessel("SSH Jackie", critical_capacity=13, priority_capacity=11, stable_capacity=29, max_range_full_ly=8.7),
+    "SSH Dana": RescueVessel("SSH Dana", critical_capacity=16, priority_capacity=34, stable_capacity=14, max_range_full_ly=9.6),
+    "SSH Carla": RescueVessel("SSH Carla", critical_capacity=23, priority_capacity=44, stable_capacity=12, max_range_full_ly=10.8),
+    "SSH Joy": RescueVessel("SSH Joy", critical_capacity=15, priority_capacity=20, stable_capacity=48, max_range_full_ly=11.8),
+    "SSH Wilkes": RescueVessel("SSH Wilkes", critical_capacity=54, priority_capacity=25, stable_capacity=20, max_range_full_ly=13.9),
+    "SSH Ratched": RescueVessel("SSH Ratched", critical_capacity=42, priority_capacity=39, stable_capacity=24, max_range_full_ly=16.0),
 }
 
-def choose_vessel_from_catalog() -> Vessel:
+
+def choose_vessel_from_catalog() -> RescueVessel:
+    """Prompts user to pick a vessel"""
     return choose_from_options(
         VESSEL_CATALOG,
         title="Choose a vessel:",
-        line_formatter=lambda key, d: (
-            f"{v.name} ({v.critical_capacity}, {v.priority_capacity}, {v.stable_capacity},"
-            f"{v.distance_from_destination_in_km:,} km, danger={d.danger_level})"
+        line_formatter=lambda key, v: (
+            f"{v.name} (C={v.critical_capacity}, P={v.priority_capacity}, S={v.stable_capacity}, "
+            f"range={v.max_range_full_ly} LY)"
         ),
-    )"""
+    )

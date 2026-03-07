@@ -15,6 +15,10 @@ class RescueVessel:
     fuel_capacity: int = 200_000
     max_range_km: int = 2_000_000
     speed_km_s: float = 20.0
+    critical_capacity: int = 5
+    priority_capacity: int = 5
+    stable_capacity: int = 10
+    max_range_full_ly: float = 5.0
 
     evac_capacity: int = 10
     med_bays: int = 1
@@ -26,7 +30,11 @@ class RescueVessel:
         """
 
     def summary(self) -> str:
-        return f"{self.name}: fuel={self.fuel_level_pct}%, and capacity of {self.evac_capacity}"
+        return (
+           f"{self.name}: fuel={self.fuel_level_pct}%, "
+           f"capacity (C/P/S)={self.critical_capacity}/{self.priority_capacity}/{self.stable_capacity}, "
+           f"range={self.max_range_full_ly} LY" 
+        )
 
     def can_reach(self, destination: Destination) -> bool:
         return f"Is vessel able to get to Destination"

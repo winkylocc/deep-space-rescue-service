@@ -188,7 +188,33 @@ class MainHub:
         return incident
     
     def select_best_vessel(self, incident: Incident) -> Optional[RescueVessel]:
-        return f"Select best vessel for this journey"
+        print("\nSelect a vessel to dispatch to the incident.")
+
+        available = [v for v in self.fleet if v.status == "READY"]
+
+        if not available:
+            print("No vessels are currently available.")
+            return None
+
+        print("\nAvailable vessels:")
+        for i, vessel in enumerate(available, start=1):
+            print(
+                f"{i}) {vessel.name} "
+                f"[C={vessel.critical_capacity}, P={vessel.priority_capacity}, S={vessel.stable_capacity}, "
+                f"range={vessel.max_range_full_ly} LY]"
+            )
+
+        while True:
+            try:
+                choice = int(input("> Select a vessel number: ").strip())
+                if 1 <= choice <= len(available):
+                    selected = available[choice - 1]
+                    selected.status = "DISPATCHED"
+                    print(f"\n{selected.name} dispatched to incident {incident.incident_id}.")
+                    return selected
+                print(f"Please enter a number between 1 and {len(available)}.")
+            except ValueError:
+                print("Invalid input. Please enter a whole number (ex: 1).")
     def create_mission(self, incident: Incident) -> RescueMission:
         return f"Create initial mission"
     def dispatch(self, mission: RescueMission) -> None:
