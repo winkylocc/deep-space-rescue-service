@@ -62,6 +62,12 @@ def main():
                     f"stable={available['stable']}"
                 )
 
+            print("\n=== MISSION SUMMARY ===")   # outside the loop, correct
+            print(f"Vessel: {vessel.name}")
+            print(f"Vessel starting distance from hub: {vessel.distance_from_hub_km:,.0f} km")
+            print(f"Destination: {incident.destination.name}")
+            print(f"ETA to incident site: {vessel.estimated_travel_time_hrs(incident.destination)} hrs")
+
         elif choice == "2":
             print("\nShutting down DSRS Command Console.")
             break

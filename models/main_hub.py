@@ -198,10 +198,11 @@ class MainHub:
 
         print("\nAvailable vessels:")
         for i, vessel in enumerate(available, start=1):
+            eta = vessel.estimated_travel_time_hrs(incident.destination)
             print(
                 f"{i}) {vessel.name} "
                 f"[C={vessel.critical_capacity}, P={vessel.priority_capacity}, S={vessel.stable_capacity}, "
-                f"range={vessel.max_range_full_ly} LY]"
+                f"range={vessel.max_range_full_ly} LY, ETA={eta} hrs]"
             )
 
         while True:
