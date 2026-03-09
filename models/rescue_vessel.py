@@ -25,6 +25,7 @@ class RescueVessel:
     cargo_capacity_in_kgs: int = 2_000
 
     status: str = "READY"
+    distance_from_hub_km: float = 0.0
     """
         hazard_level to make sure we have that as equipment,maybe
         """
@@ -35,6 +36,10 @@ class RescueVessel:
            f"capacity (C/P/S)={self.critical_capacity}/{self.priority_capacity}/{self.stable_capacity}, "
            f"range={self.max_range_full_ly} LY" 
         )
+
+    def estimated_travel_time_hrs(self, destination: Destination) -> float:
+        total_distance = destination.distance_from_hub_in_km + self.distance_from_hub_km
+        return round((total_distance / self.speed_km_s) / 3600, 1)
 
     def can_reach(self, destination: Destination) -> bool:
         return f"Is vessel able to get to Destination"
