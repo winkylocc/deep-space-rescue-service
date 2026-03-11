@@ -1,6 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+from models.rescue_vessel import RescueVessel
+from .casualties import Casualties
 
 if TYPE_CHECKING:
     from .destination import Destination
@@ -10,28 +12,41 @@ if TYPE_CHECKING:
 class Incident:
     incident_id: str
     destination: Destination
-    incident_type: (
-        str  # solar_flare, asteroid_collision, reactor_malfunction, hull_breach
-    )
+    incident_type: str
     severity: str  # LOW, MEDIUM, HIGH, EXTREME
-    casualties_critical: int
-    casualties_priority: int
-    casualties_stable: int
+    casualties: Casualties
     description: str
     time_reported: str  # keep simple for now
+    expires_in_seconds: int = 0
+    accepted: bool = False
+    assigned_vessel: Optional[RescueVessel] = None
 
     def total_casualties(self) -> int:
-        return (
-            self.casualties_critical + self.casualties_priority + self.casualties_stable
-        )
+        return self.casualties.total()
 
     def summary(self) -> str:
+        c = self.casualties
         return (
-            f"{self.incident_id}: {self.incident_type} at {self.destination} "
+            f"{self.incident_id}: {self.incident_type} at {self.destination.name} "
             f"(severity={self.severity}) | "
-            f"critical={self.casualties_critical}, "
-            f"priority={self.casualties_priority}, "
-            f"stable={self.casualties_stable}, "
-            f"total={self.total_casualties()} | "
+            f"total={c.total()} | "
             f"reported={self.time_reported}"
+        )
+    
+    def details(self) -> str:
+        vessel_name = self.assigned_vessel.name if self.assigned_vessel else "None"
+        accepted_status = "Yes" if self.accepted else "No"
+
+        return (
+            "\n=== Incident DETAILS ===\n"
+            f"Destination: {self.destination.name}\n"
+            f"Environment: {self.destination.environment}\n"
+            f"Danger Level: {self.destination.danger_level}\n"
+            f"Incident Type: {self.incident_type}\n"
+            f"Severity: {self.severity}\n"
+            f"Casualties: {self.casualties}\n"
+            f"Description: {self.description}\n"
+            f"Accepted: {accepted_status}\n"
+            f"Assigned Vessel: {vessel_name}\n"
+            f"Expires: {self.expires_in_seconds}\n"
         )
