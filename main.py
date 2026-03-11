@@ -1,6 +1,8 @@
-from models import MainHub, Port
+from models import MainHub
 from data.port_catalog import PORT_CATALOG
 from data.vessel_catalog import VESSEL_CATALOG
+from models.rescue_vessel import RescueVessel
+import random
 
 
 def show_intro():
@@ -13,18 +15,32 @@ def show_intro():
     print()
     print("You may report incidents and assign")
     print("casualties to available ports.")
-    print()
+    print("Monitoring destinations for incoming incidents...")
 
 
-def show_menu():
-    print("\nSelect an option:")
-    print("1. Report a new incident")
-    print("2. Exit")
+def simulate_rescue_launches(hub: MainHub):
+    ready_vessels = [v for v in hub.fleet if v.status == "READY"]
+
+    if len(ready_vessels) < 2:
+        print("Need at least 2 READY vessels of ready status.")
+        return
+
+    print("\n=== RESCUE LAUNCH SIMULATION ===")
+
+    incident1 = hub.generate_random_incident()
+    log1 = RescueVessel.schedule_rescue_launch(ready_vessels[0], incident1)
+    print(log1["flight_message"])
+
+    incident2 = hub.generate_random_incident()
+    log2 = RescueVessel.schedule_rescue_launch(ready_vessels[1], incident2)
+    print(log2["flight_message"])
+
+    print("=== END SIMULATION ===")
 
 
 def main():
     hub = MainHub(name="DSRS Main Hub")
-    print("This is the ")
+
     for vessel in VESSEL_CATALOG.values():
         hub.register_vessel(vessel)
 
@@ -33,41 +49,99 @@ def main():
 
     show_intro()
 
+    loop_counter = 0
+    next_auto_incident_at = 1  # testing: trigger fast
+
     while True:
-        show_menu()
-        choice = input("> ").strip()
+        hub.expire_incoming_incident_if_needed()
 
-        if choice == "1":
-            incident = hub.report_incident_from_user_input()
+        print(f"\n=== {hub.name} ===")
+        print(f"Hub State: {hub.hub_state}")
 
-            print("\nIncident recorded:")
-            print(incident.summary())
+        if hub.hub_state == "INCOMING_INCIDENT" and hub.current_incoming_incident:
+            print("\n*** INCOMING INCIDENT ***")
+            print(hub.current_incoming_incident.summary())
+            print("1) Accept incident")
+            print("2) View incident details")
+            print("3) Ignore for now")
+            print("4) Simulate rescue launches")
+            print("5) Exit")
 
-            vessel = hub.select_best_vessel(incident)
+            choice = input("> ").strip()
 
-            assignments = hub.assign_ports_for_casualties(incident)
+            if choice == "1":
+                incident = hub.accept_incoming_incident()
 
-            for port, critical, priority, stable in assignments:
-                available = port.available_capacity()
+                if incident:
+                    vessel = hub.select_best_vessel(incident)
 
-                print(
-                    f"\n{port.name} received "
-                    f"{critical} critical, {priority} priority, {stable} stable evacuees."
-                )
+                    if vessel:
+                        launch_log = RescueVessel.schedule_rescue_launch(vessel, incident)
+                        print("\n=== MISSION LAUNCH LOG ===")
+                        print(launch_log["flight_message"])
+                        print("==========================\n")
 
-                print(
-                    f"{port.name} remaining capacity -> "
-                    f"critical={available['critical']}, "
-                    f"priority={available['priority']}, "
-                    f"stable={available['stable']}"
-                )
+                        hub.assign_ports_for_casualties(incident)
+                        hub.clear_incoming_incident()
 
-        elif choice == "2":
-            print("\nShutting down DSRS Command Console.")
-            break
+            elif choice == "2":
+                print(hub.current_incoming_incident.details())
+
+            elif choice == "3":
+                print("Incoming incident left pending for now.")
+
+            elif choice == "4":
+                simulate_rescue_launches(hub)
+
+            elif choice == "5":
+                break
+
+            else:
+                print("Invalid option.")
 
         else:
-            print("Invalid option. Please choose 1 or 2.")
+            print("1) Report manual incident")
+            print("2) Show vessels")
+            print("3) Run rescue launch simulation")
+            print("4) Exit")
+
+            choice = input("> ").strip()
+
+            if choice == "1":
+                incident = hub.report_incident_from_user_input()
+                vessel = hub.select_best_vessel(incident)
+
+                if vessel:
+                    launch_log = RescueVessel.schedule_rescue_launch(vessel, incident)
+                    print("\n=== MISSION LAUNCH LOG ===")
+                    print(launch_log["flight_message"])
+                    print("==========================\n")
+
+                    hub.assign_ports_for_casualties(incident)
+
+            elif choice == "2":
+                for vessel in hub.fleet:
+                    print(vessel.summary())
+
+            elif choice == "3":
+                simulate_rescue_launches(hub)
+
+            elif choice == "4":
+                break
+
+            else:
+                print("Invalid option.")
+
+            loop_counter += 1
+            if loop_counter >= next_auto_incident_at and hub.hub_state == "IDLE":
+                incident = hub.activate_random_incoming_incident()
+                if incident:
+                    print("\n*** INCOMING INCIDENT ***")
+                    print(incident.summary())
+                    print("Manual incident entry is now disabled.")
+
+                loop_counter = 0
+                next_auto_incident_at = 1  # keep fast for testing
 
 
 if __name__ == "__main__":
