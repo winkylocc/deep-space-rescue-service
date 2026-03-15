@@ -36,6 +36,101 @@ class MainHub:
         """Add a port to the hub."""
         self.ports.append(port)
 
+    def create_incident(
+        self,
+        destination,
+        incident_type: str,
+        severity: str,
+        critical: int,
+        priority: int,
+        stable: int,
+        incident_description: str,  
+    ):
+        self.incident_counter += 1
+        incident_id = f"INC-{self.incident_counter:03d}"
+        time_reported = datetime.now().strftime("%Y-%m-%dT%H:%M")
+
+        incident = Incident(
+            incident_id,
+            destination,
+            incident_type,
+            severity,
+            critical,
+            priority,
+            stable,
+            incident_description,
+            time_reported,
+        )
+
+        print(f"Incident #{incident_id} reported successfully at {time_reported}")
+        return incident
+
+
+    def assign_ports_for_casualties_with_selector(self, incident, select_port_fn):
+        print("\nBegin casualty placement.")
+        print("Click a port on the map to place casualties there.")
+
+        remaining = {
+            "critical": incident.casualties_critical,
+            "priority": incident.casualties_priority,
+            "stable": incident.casualties_stable,
+        }
+        assignments = []
+
+        while any(v > 0 for v in remaining.values()):
+            available_ports = []
+            for port in self.ports:
+                available = port.available_capacity()
+                if any(v > 0 for v in available.values()):
+                    available_ports.append(port)
+
+            if not available_ports:
+                print("WARNING: No more port space available.")
+                break
+
+            chosen_port = select_port_fn(remaining, available_ports)
+            if chosen_port is None:
+                print("Port selection cancelled.")
+                break
+
+            assigned = {}
+            available = chosen_port.available_capacity()
+
+            for triage in ["critical", "priority", "stable"]:
+                assigned[triage] = min(remaining[triage], available[triage])
+
+            if all(v == 0 for v in assigned.values()):
+                print(f"{chosen_port.name} has no space left for these casualties.")
+                continue
+
+            for triage in ["critical", "priority", "stable"]:
+                chosen_port.current_load[triage] += assigned[triage]
+                remaining[triage] -= assigned[triage]
+
+            assignments.append(
+                (
+                    chosen_port,
+                    assigned["critical"],
+                    assigned["priority"],
+                    assigned["stable"],
+                )
+            )
+
+            print(
+                f"{chosen_port.name} received "
+                f"{assigned['critical']} critical, "
+                f"{assigned['priority']} priority, "
+                f"{assigned['stable']} stable casualties."
+            )
+            print(
+                f"{chosen_port.name} remaining capacity -> "
+                f"critical={chosen_port.available_capacity()['critical']}, "
+                f"priority={chosen_port.available_capacity()['priority']}, "
+                f"stable={chosen_port.available_capacity()['stable']}"
+            )
+
+        return assignments    
+
     def get_total_available_capacity(self) -> dict[str, int]:
         totals = {"critical": 0, "priority": 0, "stable": 0}
 
@@ -317,7 +412,6 @@ class MainHub:
 
                 if 1 <= choice <= len(available):
                     selected = available[choice - 1]
-                    selected.status = "DISPATCHED"
                     incident.assigned_vessel = selected
 
                     print(f"\n{selected.name} dispatched to incident {incident.incident_id}.")
@@ -332,21 +426,6 @@ class MainHub:
         """Store an auto-generated incoming incident in the hub."""
         self.current_incoming_incident = incident
         self.hub_state = "INCOMING_INCIDENT"
-
-    def accept_incoming_incident(self) -> Optional[Incident]:
-        """Accept the currently incoming incident so it can be worked like a normal incident."""
-        if self.current_incoming_incident is None:
-            print("There is no incoming incident to accept.")
-            return None
-
-        self.current_incoming_incident.accepted = True
-        self.hub_state = "ACTIVE_MISSION"
-        return self.current_incoming_incident
-
-    def clear_incoming_incident(self) -> None:
-        """Clear the incoming incident and return hub to idle."""
-        self.current_incoming_incident = None
-        self.hub_state = "IDLE"
 
     def create_mission(self, incident: Incident) -> RescueMission:
         raise NotImplementedError("Create initial mission logic goes here.")

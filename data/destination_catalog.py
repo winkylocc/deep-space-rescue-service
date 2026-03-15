@@ -1,41 +1,41 @@
 from models.destination import Destination
-from utils.menu import choose_from_options
-import random
 
 DESTINATION_CATALOG = {
     "Kreet": Destination(
-        "Kreet",
-        "research_site",
-        3_000_000,
-        "Outer Rim",
-        "HIGH",
-        "Rocky desert world"
-    ),
-    "Vallis Marineris Station": Destination(
-        "Vallis Marineris Station",
-        "colony",
-        1_200_000,
-        "Mars Sector",
-        "MEDIUM",
-        "Canyon settlement"
+        name="Kreet",
+        destination_type="Frontier Outpost",
+        distance_ly=2.5,
+        sector="Outer Rim",
+        danger_level="MEDIUM",
+        description="A remote frontier station with unstable life-support systems."
     ),
     "Titan Outpost": Destination(
-        "Titan Outpost",
-        "mining_outpost",
-        5_800_000,
-        "Outer Rim",
-        "HIGH",
-        "Methane ice plains"
+        name="Titan Outpost",
+        destination_type="Mining Colony",
+        distance_ly=4.5,
+        sector="Saturn Reach",
+        danger_level="HIGH",
+        description="A hazardous mining outpost known for tunnel collapses and methane fires."
     ),
     "Europa Research Colony": Destination(
-        "Europa Research Colony",
-        "research_colony",
-        4_900_000,
-        "Jovian Sector",
-        "EXTREME",
-        "Frozen ocean crust"
+        name="Europa Research Colony",
+        destination_type="Research Site",
+        distance_ly=9.2,
+        sector="Jovian Frontier",
+        danger_level="HIGH",
+        description="A deep-space research colony operating under extreme ice-world conditions."
+    ),
+    "Vallis Marineris Station": Destination(
+        name="Vallis Marineris Station",
+        destination_type="Civilian Settlement",
+        distance_ly=6.8,
+        sector="Mars Corridor",
+        danger_level="MEDIUM",
+        description="A major canyon settlement with heavy civilian and cargo traffic."
     ),
 }
 
+
 def choose_destination_from_catalog() -> Destination:
+    import random
     return random.choice(list(DESTINATION_CATALOG.values()))

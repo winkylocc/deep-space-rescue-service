@@ -1,12 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from datetime import datetime, timedelta
 
 if TYPE_CHECKING:
-    from .destination import Destination
     from .incident import Incident
-    from .rescue_mission import RescueMission
 
 
 @dataclass
@@ -14,12 +12,14 @@ class RescueVessel:
     name: str
     fuel_level_pct: float = 100.0
     fuel_capacity: int = 200_000
-    max_range_km: int = 2_000_000
-    speed_km_s: float = 20.0
+
+    max_range_full_ly: float = 5.0
+    speed_ly_s: float = 0.25
+
     critical_capacity: int = 5
     priority_capacity: int = 5
     stable_capacity: int = 10
-    max_range_full_ly: float = 5.0
+
     evac_capacity: int = 10
     med_bays: int = 1
     cargo_capacity_in_kgs: int = 2_000
@@ -29,44 +29,103 @@ class RescueVessel:
         return (
             f"{self.name}: fuel={self.fuel_level_pct}%, "
             f"capacity (C/P/S)={self.critical_capacity}/{self.priority_capacity}/{self.stable_capacity}, "
-            f"range={self.max_range_full_ly} LY"
+            f"range={self.max_range_full_ly} LY, "
+            f"status={self.status}"
         )
 
-    @staticmethod
-    def schedule_rescue_launch(vessel: "RescueVessel", incident) -> dict:
-        start_time = datetime.now()
+    def can_reach(self, incident: "Incident") -> bool:
+        return incident.destination.distance_ly <= self.max_range_full_ly
 
-        travel_seconds = incident.destination.distance_from_hub_in_km / vessel.speed_km_s
+    def has_capacity_for(self, incident: "Incident") -> bool:
+        return (
+            incident.casualties.critical <= self.critical_capacity
+            and incident.casualties.priority <= self.priority_capacity
+            and incident.casualties.stable <= self.stable_capacity
+        )
+
+    def schedule_rescue_launch(self, incident: "Incident") -> dict:
+        if self.speed_ly_s <= 0:
+            raise ValueError(f"{self.name} cannot launch because speed_ly_s must be greater than 0.")
+
+        start_time = datetime.now()
+        travel_seconds = incident.destination.distance_ly / self.speed_ly_s
         arrival_time = start_time + timedelta(seconds=travel_seconds)
 
-        flight_log = {
-            "vessel_name": vessel.name,
+        return {
+            "vessel_name": self.name,
             "incident_id": incident.incident_id,
             "destination_name": incident.destination.name,
             "start_time": start_time,
             "arrival_time": arrival_time,
             "travel_seconds": travel_seconds,
             "flight_message": (
-                f"{vessel.name} departing at "
+                f"{self.name} departing at "
                 f"{start_time.strftime('%Y-%m-%d %H:%M:%S')}, "
                 f"expected arrival time is {arrival_time.strftime('%Y-%m-%d %H:%M:%S')} "
                 f"at {incident.destination.name}."
             ),
         }
-        return flight_log
 
-    def refuel(self):
-        while True:
-            try:
-                amount = int(input("Enter fuel added fuel amount: "))
+    def launch_rescue(self, incident: "Incident") -> dict:
+        destination = incident.destination
 
-                if self.fuel_level_pct + amount > self.fuel_capacity:
-                    raise ValueError("Error with fuel capacity")
+        if self.status != "READY":
+            return {
+                "success": False,
+                "message": f"Mission aborted: {self.name} is not READY."
+            }
 
-                self.fuel_level_pct += amount
-                print(f"Current Fuel load: {self.fuel_level_pct}")
-                break
+        if not self.can_reach(incident):
+            return {
+                "success": False,
+                "message": (
+                    f"Mission aborted: destination {destination.name} is too far "
+                    f"({destination.distance_ly} LY). "
+                    f"Max range is {self.max_range_full_ly} LY."
+                )
+            }
 
-            except ValueError as e:
-                print("Invalid fuel amount", e)
-                print("Try again!")
+        if incident.casualties.critical > self.critical_capacity:
+            return {
+                "success": False,
+                "message": (
+                    f"Mission aborted: critical casualty count exceeds capacity "
+                    f"({incident.casualties.critical}/{self.critical_capacity})."
+                )
+            }
+
+        if incident.casualties.priority > self.priority_capacity:
+            return {
+                "success": False,
+                "message": (
+                    f"Mission aborted: priority casualty count exceeds capacity "
+                    f"({incident.casualties.priority}/{self.priority_capacity})."
+                )
+            }
+
+        if incident.casualties.stable > self.stable_capacity:
+            return {
+                "success": False,
+                "message": (
+                    f"Mission aborted: stable casualty count exceeds capacity "
+                    f"({incident.casualties.stable}/{self.stable_capacity})."
+                )
+            }
+
+        flight_log = self.schedule_rescue_launch(incident)
+        self.status = "DEPLOYED"
+
+        return {
+            "success": True,
+            "message": (
+                f"Mission started successfully: {self.name} launched to "
+                f"{destination.name}. Distance: {destination.distance_ly} LY. "
+                f"Casualties onboard - Critical: {incident.casualties.critical}, "
+                f"Priority: {incident.casualties.priority}, "
+                f"Stable: {incident.casualties.stable}."
+            ),
+            "flight_log": flight_log
+        }
+
+    def mark_ready(self) -> None:
+        self.status = "READY"
