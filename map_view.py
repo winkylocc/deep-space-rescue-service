@@ -1,221 +1,169 @@
-import math
-import random
-import sys
 import pygame
-
-from models import MainHub
-from data.port_catalog import PORT_CATALOG
-from data.vessel_catalog import VESSEL_CATALOG
-from data.destination_catalog import DESTINATION_CATALOG
+import sys
+import random
 
 pygame.init()
 pygame.font.init()
 
-SCREEN_WIDTH = 340
-SCREEN_HEIGHT = 250
-SCALING_FACTOR = 4
-
-window_size = (SCREEN_WIDTH * SCALING_FACTOR, SCREEN_HEIGHT * SCALING_FACTOR)
-screen = pygame.display.set_mode(window_size, pygame.SCALED)
-pygame.display.set_caption("Deep Space Rescue Service - Live Map")
-display_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-
-clock = pygame.time.Clock()
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 800
 FPS = 30
 
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Deep Space Rescue Service - Live Map")
+
+clock = pygame.time.Clock()
+
+# Colors
 BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 170)
+WHITE = (245, 245, 245)
+GRAY = (120, 120, 120)
 YELLOW = (255, 255, 0)
-RED = (170, 0, 0)
-GREEN = (0, 200, 120)
-CYAN = (80, 220, 255)
-MAGENTA = (220, 80, 220)
-GRAY = (90, 90, 90)
-DARK_BLUE = (15, 25, 60)
-ORANGE = (255, 140, 0)
+RED = (220, 40, 40)
+GREEN = (40, 220, 140)
+BLUE = (80, 180, 255)
+PURPLE = (210, 100, 230)
+ORANGE = (255, 170, 40)
+NAVY = (12, 24, 68)
+CYAN = (90, 220, 255)
 
-try:
-    font = pygame.font.Font("font.ttf", 16)
-    small_font = pygame.font.Font("font.ttf", 8)
-except FileNotFoundError:
-    font = pygame.font.SysFont("Courier", 16)
-    small_font = pygame.font.SysFont("Courier", 8)
+# Fonts
+title_font = pygame.font.SysFont("Courier", 42, bold=True)
+label_font = pygame.font.SysFont("Courier", 22, bold=True)
+small_font = pygame.font.SysFont("Courier", 18)
+tiny_font = pygame.font.SysFont("Courier", 16)
 
-hub = MainHub(name="DSRS Main Hub")
-
-for vessel in VESSEL_CATALOG.values():
-    hub.register_vessel(vessel)
-
-for port in PORT_CATALOG.values():
-    hub.register_port(port)
-
-HUB_POS = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-
-PORT_POSITIONS = {
-    "Eastman Station": (70, 60),
-    "The PITT": (280, 55),
-    "Sacred Heart Station": (80, 200),
-    "St. Eligius": (270, 190),
-}
-
-DESTINATION_POSITIONS = {
-    "Kreet": (40, 35),
-    "Neebas": (120, 35),
-    "Eridan II": (300, 90),
-    "Muphrid IV": (300, 30),
-    "Toliman II": (35, 120),
-    "Jemison": (300, 215),
-    "Codos": (35, 220),
-}
-resolved_port_positions = dict(PORT_POSITIONS)
-resolved_destination_positions = dict(DESTINATION_POSITIONS)
-
-def random_map_point():
-    return (random.randint(25, SCREEN_WIDTH - 25), random.randint(25, SCREEN_HEIGHT - 35))
-
+# Stars
 stars = []
-for _ in range(60):
+for _ in range(100):
     stars.append([
-        random.randint(0, SCREEN_WIDTH - 1),
-        random.randint(0, SCREEN_HEIGHT - 1),
-        random.uniform(0.1, 0.4)
+        random.randint(0, SCREEN_WIDTH),
+        random.randint(0, SCREEN_HEIGHT),
+        random.uniform(0.2, 0.8)
     ])
 
-ship_sprites = []
-for vessel in hub.fleet:
-    ship_sprites.append({
-        "vessel": vessel,
-        "pos": [HUB_POS[0], HUB_POS[1]],
-        "target": HUB_POS,
-        "speed": random.uniform(0.35, 0.8),
-        "color": WHITE,
-    })
 
-status_message = "Press R to report an incident"
-highlight_destination_names = set()
-highlight_port_names = set()
-active_destination_name = None
-
-
-def scaled_mouse_pos():
-    mx, my = pygame.mouse.get_pos()
-    return mx // SCALING_FACTOR, my // SCALING_FACTOR
-
-
-def was_clicked(mouse_pos, obj_pos, radius=8):
-    mx, my = mouse_pos
-    ox, oy = obj_pos
-    return ((mx - ox) ** 2 + (my - oy) ** 2) <= radius ** 2
-
-
-def update_starfield():
+def update_and_draw_stars(surface):
     for star in stars:
         star[1] += star[2]
         if star[1] > SCREEN_HEIGHT:
-            star[0] = random.randint(0, SCREEN_WIDTH - 1)
+            star[0] = random.randint(0, SCREEN_WIDTH)
             star[1] = 0
-        display_surface.set_at((int(star[0]), int(star[1])), WHITE)
+        pygame.draw.circle(surface, WHITE, (int(star[0]), int(star[1])), 1)
 
 
-def draw_ship_icon(x, y, color=WHITE):
-    pygame.draw.rect(display_surface, color, (x - 2, y - 2, 5, 5))
-    pygame.draw.rect(display_surface, BLUE, (x - 1, y - 4, 3, 2))
+def draw_intro_ship(surface, x, y):
+    pygame.draw.rect(surface, WHITE, (x, y, 32, 38))
+    pygame.draw.rect(surface, BLUE, (x + 8, y, 16, 10))
+
+    # red cross
+    pygame.draw.rect(surface, RED, (x + 12, y + 14, 8, 14))
+    pygame.draw.rect(surface, RED, (x + 9, y + 18, 14, 6))
+
+    # wings
+    pygame.draw.polygon(surface, WHITE, [(x - 14, y + 28), (x, y + 34), (x, y + 20)])
+    pygame.draw.polygon(surface, WHITE, [(x + 46, y + 28), (x + 32, y + 34), (x + 32, y + 20)])
+
+    # lights
+    if pygame.time.get_ticks() % 600 < 300:
+        pygame.draw.rect(surface, RED, (x + 4, y - 4, 6, 4))
+        pygame.draw.rect(surface, BLUE, (x + 20, y - 4, 6, 4))
+    else:
+        pygame.draw.rect(surface, BLUE, (x + 4, y - 4, 6, 4))
+        pygame.draw.rect(surface, RED, (x + 20, y - 4, 6, 4))
+
+    # engines
+    pygame.draw.rect(surface, ORANGE, (x + 6, y + 38, 6, 8))
+    pygame.draw.rect(surface, ORANGE, (x + 20, y + 38, 6, 8))
 
 
-def move_ship(ship):
-    tx, ty = ship["target"]
-    x, y = ship["pos"]
+def draw_intro_screen():
+    ship_y = SCREEN_HEIGHT - 140
+    ship_x = SCREEN_WIDTH // 2 - 16
 
-    dx = tx - x
-    dy = ty - y
-    dist = math.sqrt(dx * dx + dy * dy)
+    message = label_font.render("Deep Space Rescue Service", True, RED)
+    sub_message = small_font.render("Press ESC to enter the DSRS Live Map", True, CYAN)
 
-    if dist < 2:
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                return
+
+        screen.fill(BLACK)
+        update_and_draw_stars(screen)
+
+        msg_rect = message.get_rect(center=(SCREEN_WIDTH // 2, 90))
+        sub_rect = sub_message.get_rect(center=(SCREEN_WIDTH // 2, 130))
+        screen.blit(message, msg_rect)
+        screen.blit(sub_message, sub_rect)
+
+        if ship_y > 140:
+            ship_y -= 1.5
+
+        draw_intro_ship(screen, ship_x, int(ship_y))
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def draw_node(surface, x, y, color, radius=18):
+    pygame.draw.circle(surface, color, (x, y), radius)
+    pygame.draw.circle(surface, WHITE, (x, y), radius // 3)
+
+
+def draw_incident_marker(surface, x, y):
+    blink_on = (pygame.time.get_ticks() // 350) % 2 == 0
+    if blink_on:
+        pygame.draw.circle(surface, RED, (x, y), 12)
+        pygame.draw.circle(surface, YELLOW, (x, y), 5)
+
+
+def draw_vessel_preview_panel(surface, selected_vessel):
+    panel_rect = pygame.Rect(980, 500, 260, 220)
+    pygame.draw.rect(surface, NAVY, panel_rect)
+    pygame.draw.rect(surface, WHITE, panel_rect, 2)
+
+    panel_x = panel_rect.x
+    panel_y = panel_rect.y
+
+    header = label_font.render("SELECTED VESSEL", True, WHITE)
+    surface.blit(header, (panel_x + 12, panel_y + 18))
+
+    if not selected_vessel:
+        none_text = small_font.render("No vessel selected", True, GRAY)
+        surface.blit(none_text, (panel_x + 12, panel_y + 55))
         return
 
-    ship["pos"][0] += ship["speed"] * dx / dist
-    ship["pos"][1] += ship["speed"] * dy / dist
+    ship_x = panel_x + 12
+    ship_y = panel_y + 105
+    draw_intro_ship(surface, ship_x, ship_y)
+
+    lines = [
+        f"Name: {selected_vessel.name}",
+        f"Status: {selected_vessel.status}",
+        f"Critical: {selected_vessel.critical_capacity}",
+        f"Priority: {selected_vessel.priority_capacity}",
+        f"Stable: {selected_vessel.stable_capacity}",
+        f"Range: {selected_vessel.max_range_full_ly} LY",
+    ]
+
+    y = panel_y + 50
+    for line in lines:
+        txt = tiny_font.render(line, True, WHITE)
+        surface.blit(txt, (panel_x + 90, y))
+        y += 20
 
 
-def quality_color(port):
-    if port.quality_of_care == "HIGH":
-        return GREEN
-    if port.quality_of_care == "MEDIUM":
-        return CYAN
-    return ORANGE
+def draw_legend(surface):
+    legend_rect = pygame.Rect(0, SCREEN_HEIGHT - 70, SCREEN_WIDTH, 70)
+    pygame.draw.rect(surface, NAVY, legend_rect)
 
-
-def draw_hub():
-    hx, hy = HUB_POS
-    pygame.draw.circle(display_surface, YELLOW, (hx, hy), 8)
-    pygame.draw.circle(display_surface, RED, (hx, hy), 3)
-    label = small_font.render("MAIN HUB", True, WHITE)
-    display_surface.blit(label, (hx - 18, hy + 12))
-
-
-def draw_ports():
-    for port in hub.ports:
-        pos = get_port_position(port.name)
-        color = quality_color(port)
-
-        pygame.draw.line(display_surface, GRAY, HUB_POS, pos, 1)
-
-        radius = 9 if port.name in highlight_port_names else 7
-        border = WHITE if port.name in highlight_port_names else color
-
-        pygame.draw.circle(display_surface, border, pos, radius)
-        pygame.draw.circle(display_surface, color, pos, radius - 2)
-        pygame.draw.circle(display_surface, WHITE, pos, 3)
-
-        available = port.available_capacity()
-        label = small_font.render(port.name, True, WHITE)
-        cap = small_font.render(
-            f"C:{available['critical']} P:{available['priority']} S:{available['stable']}",
-            True,
-            WHITE,
-        )
-        display_surface.blit(label, (pos[0] - 24, pos[1] + 10))
-        display_surface.blit(cap, (pos[0] - 28, pos[1] + 18))
-
-
-def draw_destinations():
-    for name in DESTINATION_CATALOG.keys():
-        pos = get_destination_position(name)
-
-        if name == active_destination_name:
-            color = RED
-            radius = 7
-        elif name in highlight_destination_names:
-            color = YELLOW
-            radius = 6
-        else:
-            color = MAGENTA
-            radius = 4
-
-        pygame.draw.circle(display_surface, color, pos, radius)
-        label = small_font.render(name, True, WHITE)
-        display_surface.blit(label, (pos[0] + 6, pos[1] - 4))
-
-
-def draw_ships():
-    for ship in ship_sprites:
-        move_ship(ship)
-        x = int(ship["pos"][0])
-        y = int(ship["pos"][1])
-        draw_ship_icon(x, y, ship["color"])
-
-
-def draw_header():
-    title = font.render("DSRS LIVE MAP", True, WHITE)
-    display_surface.blit(title, (88, 8))
-    subtitle = small_font.render(status_message, True, CYAN)
-    display_surface.blit(subtitle, (10, 28))
-
-
-def draw_legend():
-    pygame.draw.rect(display_surface, DARK_BLUE, (5, SCREEN_HEIGHT - 28, SCREEN_WIDTH - 10, 23))
     items = [
         ("Hub", YELLOW),
         ("Port", GREEN),
@@ -223,237 +171,430 @@ def draw_legend():
         ("Vessel", WHITE),
     ]
 
-    x = 12
+    x = 30
     for label, color in items:
-        pygame.draw.circle(display_surface, color, (x, SCREEN_HEIGHT - 16), 4)
-        text = small_font.render(label, True, WHITE)
-        display_surface.blit(text, (x + 8, SCREEN_HEIGHT - 20))
-        x += 65
+        pygame.draw.circle(surface, color, (x, SCREEN_HEIGHT - 35), 10)
+        txt = small_font.render(label, True, WHITE)
+        surface.blit(txt, (x + 20, SCREEN_HEIGHT - 46))
+        x += 180
+
+def draw_map_vessel(surface, x, y):
+    x = int(x)
+    y = int(y)
+
+    pygame.draw.rect(surface, WHITE, (x, y, 20, 24))
+    pygame.draw.rect(surface, BLUE, (x + 5, y, 10, 6))
+
+    # red cross
+    pygame.draw.rect(surface, RED, (x + 8, y + 8, 4, 10))
+    pygame.draw.rect(surface, RED, (x + 6, y + 11, 8, 4))
+
+    # wings
+    pygame.draw.polygon(surface, WHITE, [(x - 8, y + 16), (x, y + 20), (x, y + 10)])
+    pygame.draw.polygon(surface, WHITE, [(x + 28, y + 16), (x + 20, y + 20), (x + 20, y + 10)])
 
 
-def redraw():
-    display_surface.fill(BLACK)
-    update_starfield()
-    draw_header()
-    draw_destinations()
-    draw_ports()
-    draw_hub()
-    draw_ships()
-    draw_legend()
-    screen.blit(pygame.transform.scale(display_surface, window_size), (0, 0))
-    pygame.display.flip()
+def build_port_positions(hub):
+    # you can fine tune these later
+    positions = {
+        "Eastman Station": (180, 170),
+        "The PITT": (700, 160),
+        "Sacred Heart Station": (200, 530),
+        "St. Eligius": (680, 500),
+    }
+
+    fallback_positions = [
+        (250, 180),
+        (750, 180),
+        (240, 520),
+        (720, 520),
+        (450, 250),
+        (450, 560),
+    ]
+
+    port_positions = {}
+    for idx, port in enumerate(hub.ports):
+        port_positions[port.name] = positions.get(
+            port.name,
+            fallback_positions[idx % len(fallback_positions)]
+        )
+
+    return port_positions
 
 
-def send_ships_to_destination(destination_name):
-    global active_destination_name
-    active_destination_name = destination_name
-    destination_pos = get_destination_position(destination_name)
+def build_destination_positions():
+    return {
+        "Titan Outpost": (735, 565),
+        "Europa Research Colony": (760, 120),
+        "Vallis Marineris Station": (840, 620),
+        "Kreet": (120, 110),
+    }
 
-    for i, ship in enumerate(ship_sprites):
-        if i < 4:
-            ship["target"] = destination_pos
-        else:
-            ship["target"] = HUB_POS
-
-
-def prompt_incident_details_terminal():
-    print("Enter a description of the incident")
-    incident_description = input("> ").strip()
-
-    print("Enter incident type")
-    incident_type = input("> ").strip()
-
-    while True:
-        print("Enter severity (LOW/MEDIUM/HIGH)")
-        severity = input("> ").strip().upper()
-        if severity in ["LOW", "MEDIUM", "HIGH"]:
-            break
-        print("Invalid entry. Please enter LOW, MEDIUM, or HIGH.")
-
-    while True:
-        available = hub.get_total_available_capacity()
-        print(f"\nNetwork capacity -> critical={available['critical']}, priority={available['priority']}, stable={available['stable']}")
-
-        try:
-            print("Number of critical casualties")
-            critical = int(input("> ").strip())
-            print("Number of priority casualties")
-            priority = int(input("> ").strip())
-            print("Number of stable casualties")
-            stable = int(input("> ").strip())
-
-            errors = []
-            if critical < 0 or priority < 0 or stable < 0:
-                errors.append("Casualty counts cannot be negative.")
-            if critical > available["critical"]:
-                errors.append(f"Critical exceeds available capacity ({available['critical']}).")
-            if priority > available["priority"]:
-                errors.append(f"Priority exceeds available capacity ({available['priority']}).")
-            if stable > available["stable"]:
-                errors.append(f"Stable exceeds available capacity ({available['stable']}).")
-
-            if errors:
-                print("\nUnable to record incident with those casualty counts:")
-                for error in errors:
-                    print(f"- {error}")
-                continue
-
-            return {
-                "incident_description": incident_description,
-                "incident_type": incident_type,
-                "severity": severity,
-                "critical": critical,
-                "priority": priority,
-                "stable": stable,
-            }
-
-        except ValueError:
-            print("Invalid input. Please enter whole numbers.")
+def point_in_circle(px, py, cx, cy, radius):
+    dx = px - cx
+    dy = py - cy
+    return dx * dx + dy * dy <= radius * radius
 
 
-def select_destination_on_map():
-    global highlight_destination_names, status_message
+def draw_map(hub, selected_vessel=None):
+    port_positions = build_port_positions(hub)
+    destination_positions = build_destination_positions()
+    hub_pos = (520, 520)
+    selected_destination = None
+    running = True
+    selected_port = None
+    selected_incident = None
+    map_message = ""
+    mission_result_message = ""
+    # STATE
+    animation_active = False
+    animation_vessel_x = hub_pos[0]
+    animation_vessel_y = hub_pos[1]
+    animation_target_x = hub_pos[0]
+    animation_target_y = hub_pos[1]
+    animation_speed = 4
+    animation_phase = None  # None, "outbound", "returning"
+    animation_pause_until = None
+    selected_dropoff_port = None
+    awaiting_port_assignment = False
 
-    highlight_destination_names = set(DESTINATION_CATALOG.keys())
-    status_message = "Click a destination"
-    print("\nClick a destination on the pygame map...")
-
-    while True:
-        redraw()
+    next_auto_incident_time = pygame.time.get_ticks() + 10000
+    while running:
+        current_time = pygame.time.get_ticks()
+        # retrieves and processes all user events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                highlight_destination_names = set()
-                status_message = "Destination selection cancelled"
-                return None
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    print("ESC pressed")
+                    running = False
 
+                elif event.key == pygame.K_a:
+                    print("A pressed")
+                    if selected_incident and not selected_incident.accepted:
+                        accepted = hub.accept_incoming_incident()
+                        if accepted:
+                            selected_incident = accepted
+                            map_message = f"Accepted incident {accepted.incident_id}"
+
+                elif event.key == pygame.K_v:
+                    print("V pressed")
+
+                    if selected_incident and selected_incident.accepted:
+                        ready_vessels = [v for v in hub.fleet if v.status == "READY"]
+
+                        if ready_vessels:
+                            selected_vessel = random.choice(ready_vessels)
+                            selected_incident.assigned_vessel = selected_vessel
+                            map_message = f"Selected vessel: {selected_vessel.name}"
+                            print(
+                                "Selected vessel after V:",
+                                selected_vessel.name,
+                                selected_vessel.status
+                            )
+                        else:
+                            map_message = "No READY vessels available"
+
+                elif event.key == pygame.K_l:
+                    print("L pressed")
+
+                    if selected_incident:
+                        candidate_vessels = [v for v in hub.fleet if v.status == "READY"]
+
+                        if selected_vessel and selected_vessel in candidate_vessels:
+                            candidate_vessels.remove(selected_vessel)
+                            candidate_vessels.insert(0, selected_vessel)
+
+                        launch_result = None
+                        launched_vessel = None
+
+                        for vessel in candidate_vessels:
+                            print("Trying vessel:", vessel.name, vessel.status)
+                            launch_result = vessel.launch_rescue(selected_incident)
+
+                            if launch_result["success"]:
+                                launched_vessel = vessel
+                                selected_vessel = vessel
+                                selected_incident.assigned_vessel = vessel
+                                break
+                            else:
+                                print("Launch failed with:", vessel.name, launch_result["message"])
+
+                        if launch_result is None:
+                            map_message = "No vessels available for launch"
+                            continue
+
+                        print(launch_result)
+                        mission_result_message = launch_result["message"]
+
+                        if launch_result["success"] and launched_vessel:
+                            mission_result_message = launch_result["flight_log"]["flight_message"]
+
+                            destination_name = selected_incident.destination.name
+                            if destination_name in destination_positions:
+                                animation_vessel_x = hub_pos[0]
+                                animation_vessel_y = hub_pos[1]
+                                animation_target_x, animation_target_y = destination_positions[destination_name]
+                                animation_active = True
+                                animation_phase = "outbound"
+                                animation_pause_until = None
+
+                            map_message = f"Launching {launched_vessel.name}"
+                        else:
+                            map_message = "Launch failed: no reachable/capable READY vessel"
+                
+            
             if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse = scaled_mouse_pos()
+                # clear simple click selections, but keep mission state alive
+                selected_port = None
+                selected_destination = None
+                # extracts mouse position from event/corresponds with x/y axis
+                mx, my = event.pos
 
-                for name in DESTINATION_CATALOG.keys():
-                    pos = get_destination_position(name)
-                    if was_clicked(mouse, pos, 8):
-                        highlight_destination_names = set()
-                        status_message = f"Selected destination: {name}"
-                        return DESTINATION_CATALOG[name]
+                for port in hub.ports:
+                    # if no value found in position use 200 as default
+                    x, y = port_positions.get(port.name, (200, 200))
+                    # radius of 18 used to calc hit detection
+                    if point_in_circle(mx, my, x, y, 18):
+                        selected_port = port
+                        print(f"Clicked port: {selected_port.name}")
 
-        clock.tick(FPS)
+                        if awaiting_port_assignment and selected_incident and selected_vessel:
+                            selected_dropoff_port = port
+                            map_message = f"Assigned evacuees to {port.name}"
+                            print(f"Assigned dropoff port: {selected_dropoff_port.name}")
 
+                            px, py = port_positions[port.name]
+                            animation_target_x = px
+                            animation_target_y = py
+                            animation_active = True
+                            animation_phase = "to_port"
+                            awaiting_port_assignment = False
+                        break
 
-def select_port_on_map(remaining, available_ports):
-    global highlight_port_names, status_message
+                if not selected_port:
+                    for name, (x, y) in destination_positions.items():
+                        
+                        if point_in_circle(mx, my, x, y, 10):
+                            selected_destination = name
+                            print(f"Clicked destination: {selected_destination}")
+                            break
 
-    highlight_port_names = {p.name for p in available_ports}
-    status_message = (
-        f"Click port | C:{remaining['critical']} "
-        f"P:{remaining['priority']} S:{remaining['stable']}"
-    )
+                if (
+                    selected_destination
+                    and hub.current_incoming_incident
+                ):
+                    print(
+                        "Current incoming incident destination:",
+                        hub.current_incoming_incident.destination.name
+                    )
+                    print("Selected destination:", selected_destination)
 
-    print(
-        f"\nClick a port for placement -> "
-        f"Critical: {remaining['critical']}, "
-        f"Priority: {remaining['priority']}, "
-        f"Stable: {remaining['stable']}"
-    )
+                    if hub.current_incoming_incident.destination.name == selected_destination:
+                        selected_incident = hub.current_incoming_incident
+                        print(f"Selected incident: {selected_incident.incident_id}")
+                        map_message = f"Incident selected: {selected_incident.incident_id}"
 
-    while True:
-        redraw()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+        if hub.hub_state == "IDLE" and current_time >= next_auto_incident_time:
+            incident = hub.activate_random_incoming_incident()
+            if incident:
+                print("Map-generated incident:", incident.summary())
+                map_message = f"Incoming incident: {incident.incident_id}"
+            next_auto_incident_time = current_time + 15000  # next chance in 15 sec
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                highlight_port_names = set()
-                status_message = "Port selection cancelled"
-                return None
+        screen.fill(BLACK)
+        update_and_draw_stars(screen)
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse = scaled_mouse_pos()
+        title = title_font.render("DSRS LIVE MAP", True, WHITE)
+        screen.blit(title, (180, 30))
 
-                for port in available_ports:
-                    pos = PORT_POSITIONS.get(port.name, random_map_point())
-                    if was_clicked(mouse, pos, 10):
-                        highlight_port_names = set()
-                        status_message = f"Selected port: {port.name}"
-                        return port
-
-        clock.tick(FPS)
-
-
-def run_incident_workflow():
-    global status_message
-
-    details = prompt_incident_details_terminal()
-    destination = select_destination_on_map()
-    if destination is None:
-        return
-
-    incident = hub.create_incident(
-        destination=destination,
-        incident_type=details["incident_type"],
-        severity=details["severity"],
-        critical=details["critical"],
-        priority=details["priority"],
-        stable=details["stable"],
-        incident_description=details["incident_description"],
-    )
-
-    print("\nIncident recorded:")
-    print(incident.summary())
-
-    send_ships_to_destination(destination.name)
-
-    assignments = hub.assign_ports_for_casualties_with_selector(
-        incident,
-        select_port_on_map
-    )
-
-    print("\nUpdated port status:")
-    for port, critical, priority, stable in assignments:
-        available = port.available_capacity()
-        print(
-            f"{port.name} received "
-            f"{critical} critical, {priority} priority, {stable} stable casualties."
+        action_help = tiny_font.render(
+            "Click incident → A accept → V vessel → L launch → Click port for evac",
+            True,
+            WHITE
         )
-        print(
-            f"{port.name} remaining capacity -> "
-            f"critical={available['critical']}, "
-            f"priority={available['priority']}, "
-            f"stable={available['stable']}"
-        )
+        pygame.draw.rect(screen, NAVY, (10, 105, 520, 25))
+        screen.blit(action_help, (20, 115))
 
-    status_message = f"Incident complete at {destination.name}"
+        # Hub
+        draw_node(screen, hub_pos[0], hub_pos[1], YELLOW, radius=20)
+        hub_label = label_font.render("MAIN HUB", True, WHITE)
+        screen.blit(hub_label, (hub_pos[0] - 45, hub_pos[1] + 35))
 
-def get_port_position(port_name):
-    if port_name not in resolved_port_positions:
-        resolved_port_positions[port_name] = random_map_point()
-    return resolved_port_positions[port_name]
+        # Ports
+        for port in hub.ports:
+            x, y = port_positions.get(port.name, (200, 200))
+            draw_node(screen, x, y, GREEN, radius=18)
+
+            label = label_font.render(port.name, True, WHITE)
+            screen.blit(label, (x - 60, y + 28))
+
+            capacity_text = tiny_font.render(
+                f"C:{port.available_capacity()['critical']} "
+                f"P:{port.available_capacity()['priority']} "
+                f"S:{port.available_capacity()['stable']}",
+                True,
+                WHITE
+            )
+            screen.blit(capacity_text, (x - 55, y + 52))
+
+        # Destinations
+        for name, (x, y) in destination_positions.items():
+            pygame.draw.circle(screen, PURPLE, (x, y), 10)
+            label = small_font.render(name, True, WHITE)
+            screen.blit(label, (x + 15, y - 8))
+
+        # Auto-generated incident visualization
+    
+        # INCIDENT BANNER VISUAL
+        if hub.current_incoming_incident:
+            incident_name = hub.current_incoming_incident.destination.name
+            if incident_name in destination_positions:
+                ix, iy = destination_positions[incident_name]
+                draw_incident_marker(screen, ix, iy)
+
+            banner = small_font.render(
+                f"INCOMING INCIDENT AT: {incident_name} | {hub.current_incoming_incident.incident_type}",
+                True,
+                RED
+            )
+            screen.blit(banner, (20, 140))
 
 
-def get_destination_position(destination_name):
-    if destination_name not in resolved_destination_positions:
-        resolved_destination_positions[destination_name] = random_map_point()
-    return resolved_destination_positions[destination_name]
+        if animation_active:
+            dx = animation_target_x - animation_vessel_x
+            dy = animation_target_y - animation_vessel_y
+            distance = (dx * dx + dy * dy) ** 0.5
 
-running = True
-while running:
-    redraw()
+            if distance <= animation_speed:
+                animation_vessel_x = animation_target_x
+                animation_vessel_y = animation_target_y
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+                if animation_phase == "outbound":
+                    map_message = "Rescue vessel arrived. Click a port for evacuee dropoff."
+                    animation_active = False
+                    animation_phase = "awaiting_port"
+                    awaiting_port_assignment = True
 
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
-            elif event.key == pygame.K_r:
-                run_incident_workflow()
+                elif animation_phase == "to_port":
+                    map_message = f"Evacuees delivered to {selected_dropoff_port.name}"
 
-    clock.tick(FPS)
+                    if selected_incident and selected_dropoff_port:
+                        assigned = {
+                            "critical": min(
+                                selected_incident.casualties.critical,
+                                selected_dropoff_port.available_capacity()["critical"]
+                            ),
+                            "priority": min(
+                                selected_incident.casualties.priority,
+                                selected_dropoff_port.available_capacity()["priority"]
+                            ),
+                            "stable": min(
+                                selected_incident.casualties.stable,
+                                selected_dropoff_port.available_capacity()["stable"]
+                            ),
+                        }
 
-pygame.quit()
-sys.exit()
+                        selected_dropoff_port.current_load["critical"] += assigned["critical"]
+                        selected_dropoff_port.current_load["priority"] += assigned["priority"]
+                        selected_dropoff_port.current_load["stable"] += assigned["stable"]
+
+                    if hub.current_incoming_incident:
+                        hub.clear_incoming_incident()
+
+                    animation_phase = "returning"
+                    animation_target_x = hub_pos[0]
+                    animation_target_y = hub_pos[1]
+
+                elif animation_phase == "returning":
+                    map_message = "Rescue vessel returned to hub"
+                    animation_active = False
+                    animation_phase = None
+
+                    if selected_vessel:
+                        selected_vessel.mark_ready()
+
+                    selected_incident = None
+                    selected_dropoff_port = None
+                    selected_destination = None
+                    selected_port = None
+                    awaiting_port_assignment = False
+            else:
+                animation_vessel_x += (dx / distance) * animation_speed
+                animation_vessel_y += (dy / distance) * animation_speed
+
+            draw_map_vessel(screen, animation_vessel_x, animation_vessel_y)
+
+        # PORT SELECTION DISPLAY
+        if selected_port:
+            available = selected_port.available_capacity()
+
+            line1 = small_font.render(
+                f"PORT: {selected_port.name}",
+                True,
+                CYAN
+            )
+            line2 = tiny_font.render(
+                f"Available C:{available['critical']} P:{available['priority']} S:{available['stable']}",
+                True,
+                WHITE
+            )
+
+            screen.blit(line1, (20, 150))
+            screen.blit(line2, (20, 175))
+
+
+        # DESTINATION DISPLAY
+        if selected_destination:
+            line1 = small_font.render(
+                f"DESTINATION: {selected_destination}",
+                True,
+                PURPLE
+            )
+            screen.blit(line1, (20, 205))
+
+        # SELECTED INCIDENT DISPLAY
+        if selected_incident:
+            line1 = small_font.render(
+                f"INCIDENT: {selected_incident.incident_id} {selected_incident.incident_type}",
+                True,
+                RED
+            )
+            line2 = tiny_font.render(
+                f"Severity: {selected_incident.severity} | Total casualties: {selected_incident.total_casualties()}",
+                True,
+                WHITE
+            )
+            screen.blit(line1, (20, 235))
+            screen.blit(line2, (20, 260))
+
+        if awaiting_port_assignment:
+            port_prompt = small_font.render(
+                "SELECT DROP-OFF PORT FOR EVACUEES",
+                True,
+                CYAN
+            )
+            port_prompt_2 = tiny_font.render(
+                "Click one of the green port nodes to continue evacuation.",
+                True,
+                WHITE
+            )
+            screen.blit(port_prompt, (20, 320))
+            screen.blit(port_prompt_2, (20, 345))
+
+        if map_message:
+            msg = small_font.render(map_message, True, CYAN)
+            screen.blit(msg, (900, 90))
+
+        if mission_result_message:
+            result = tiny_font.render(mission_result_message, True, WHITE)
+            screen.blit(result, (900, 120))
+
+        draw_vessel_preview_panel(screen, selected_vessel)
+        draw_legend(screen)
+
+        pygame.display.flip()
+        clock.tick(FPS)

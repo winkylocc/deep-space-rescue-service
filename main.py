@@ -2,20 +2,7 @@ from models import MainHub
 from data.port_catalog import PORT_CATALOG
 from data.vessel_catalog import VESSEL_CATALOG
 from models.rescue_vessel import RescueVessel
-import random
-
-
-def show_intro():
-    print("\n====================================")
-    print("  Deep Space Rescue Service (DSRS)")
-    print("====================================")
-    print("Welcome to the DSRS Command Console.")
-    print("This system coordinates rescue vessels")
-    print("and medical ports across the sector.")
-    print()
-    print("You may report incidents and assign")
-    print("casualties to available ports.")
-    print("Monitoring destinations for incoming incidents...")
+from map_view import draw_intro_screen, draw_map
 
 
 def simulate_rescue_launches(hub: MainHub):
@@ -47,7 +34,10 @@ def main():
     for port in PORT_CATALOG.values():
         hub.register_port(port)
 
-    show_intro()
+    # desired startup sequence:
+    # intro -> map -> console
+    draw_intro_screen()
+    draw_map(hub, selected_vessel=None)
 
     loop_counter = 0
     next_auto_incident_at = 1  # testing: trigger fast
@@ -73,16 +63,23 @@ def main():
                 incident = hub.accept_incoming_incident()
 
                 if incident:
-                    vessel = hub.select_best_vessel(incident)
+                    selected_vessel = hub.select_best_vessel(incident)
 
-                    if vessel:
-                        launch_log = RescueVessel.schedule_rescue_launch(vessel, incident)
-                        print("\n=== MISSION LAUNCH LOG ===")
-                        print(launch_log["flight_message"])
-                        print("==========================\n")
+                    if selected_vessel:
+                        draw_map(hub, selected_vessel=selected_vessel)
 
-                        hub.assign_ports_for_casualties(incident)
-                        hub.clear_incoming_incident()
+                        launch_result = selected_vessel.launch_rescue(incident)
+
+                        print("\n=== MISSION RESULT ===")
+                        print(launch_result["message"])
+
+                        if launch_result["success"]:
+                            print(launch_result["flight_log"]["flight_message"])
+                            print("======================\n")
+                            hub.assign_ports_for_casualties(incident)
+                            hub.clear_incoming_incident()
+                        else:
+                            print("======================\n")
 
             elif choice == "2":
                 print(hub.current_incoming_incident.details())
@@ -109,15 +106,22 @@ def main():
 
             if choice == "1":
                 incident = hub.report_incident_from_user_input()
-                vessel = hub.select_best_vessel(incident)
+                selected_vessel = hub.select_best_vessel(incident)
 
-                if vessel:
-                    launch_log = RescueVessel.schedule_rescue_launch(vessel, incident)
-                    print("\n=== MISSION LAUNCH LOG ===")
-                    print(launch_log["flight_message"])
-                    print("==========================\n")
+                if selected_vessel:
+                    draw_map(hub, selected_vessel=selected_vessel)
 
-                    hub.assign_ports_for_casualties(incident)
+                    launch_result = selected_vessel.launch_rescue(incident)
+
+                    print("\n=== MISSION RESULT ===")
+                    print(launch_result["message"])
+
+                    if launch_result["success"]:
+                        print(launch_result["flight_log"]["flight_message"])
+                        print("======================\n")
+                        hub.assign_ports_for_casualties(incident)
+                    else:
+                        print("======================\n")
 
             elif choice == "2":
                 for vessel in hub.fleet:
@@ -141,7 +145,7 @@ def main():
                     print("Manual incident entry is now disabled.")
 
                 loop_counter = 0
-                next_auto_incident_at = 1  # keep fast for testing
+                next_auto_incident_at = 4
 
 
 if __name__ == "__main__":

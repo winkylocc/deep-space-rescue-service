@@ -5,13 +5,13 @@ from dataclasses import dataclass
 class Destination:
     name: str
     destination_type: str
-    distance_from_hub_in_km: int
+    distance_ly: float
     sector: str
     danger_level: str
-    environment: str
+    description: str
 
     def summary(self) -> str:
         return (
             f"{self.name} is a {self.destination_type} in sector {self.sector}, "
-            f"{self.distance_from_hub_in_km:,} km from the hub (danger={self.danger_level})."
+            f"{self.distance_ly} LY from the hub (danger={self.danger_level})."
         )
